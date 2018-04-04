@@ -1,0 +1,65 @@
+# Welcome to Serverless!
+#
+# This file is the main config file for your service.
+# It's very minimal at this point and uses default values.
+# You can always add more config options for more control.
+# We've included some commented out config examples here.
+# Just uncomment any of them to get that config option.
+#
+# For full config options, check the docs:
+#    docs.serverless.com
+#
+# Happy Coding!
+
+service: ec2-scheduler
+
+provider:
+  name: aws
+  runtime: python3.6
+
+# you can overwrite defaults here
+  stage: ${opt:stage, 'dev'}
+  region: ${file(./environment/${opt:stage, 'dev'}.json):aws_region}
+
+# you can add statements to the Lambda function's IAM Role here
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "ec2:DescribeInstances"
+        - "ec2:StartInstances"
+        - "ec2:StopInstances"
+        - "ec2:CreateTags"
+      Resource:
+        - "*"
+
+# you can define service wide environment variables here
+  environment:
+    timezone: ${file(./environment/${opt:stage, 'dev'}.json):timezone}
+    ec2_scheduler: ${opt:stage, 'dev'}
+
+# you can add packaging information here
+package:
+ exclude:
+   - .idea/**
+   - __pycache__/**
+   - .git/**
+
+functions:
+  scheduler:
+    handler: handler.start_stop
+    events:
+     - schedule: rate(30 minutes)
+
+  ec2_multi_schedule:
+    handler: handler.handle_multi_ec2
+    events:
+     - http:
+          path: /ec2-multi-schedule
+          method: POST
+
+  ec2_group_schedule:
+    handler: handler.handle_group_ec2
+    events:
+     - http:
+          path: /ec2-group-schedule
+          method: POST
